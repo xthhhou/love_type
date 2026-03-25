@@ -1,0 +1,1209 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>情劫命格 · 天命占卜</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;600;700&family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #07071a;
+    --surface: rgba(255,255,255,0.04);
+    --surface2: rgba(255,255,255,0.07);
+    --gold: #c9a84c;
+    --gold2: #f0d080;
+    --purple: #9b6ef3;
+    --purple2: #c4a0ff;
+    --red: #e05c7a;
+    --text: #e8dfc8;
+    --text-dim: rgba(232,223,200,0.55);
+    --border: rgba(201,168,76,0.18);
+    --glow: rgba(201,168,76,0.12);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Serif SC', serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* ── Stars canvas ── */
+  #stars-canvas {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  /* ── Nebula blobs ── */
+  .nebula {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(90px);
+    opacity: 0.13;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .nebula-1 { width: 500px; height: 500px; background: var(--purple); top: -120px; right: -100px; }
+  .nebula-2 { width: 400px; height: 400px; background: var(--red);    bottom: -80px; left: -100px; }
+  .nebula-3 { width: 300px; height: 300px; background: var(--gold);   top: 40%; left: 50%; transform: translate(-50%,-50%); opacity: 0.07; }
+
+  /* ── App wrapper ── */
+  #app {
+    position: relative;
+    z-index: 1;
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 0 20px 60px;
+  }
+
+  /* ══ INTRO ══ */
+  #screen-intro {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    text-align: center;
+    gap: 0;
+  }
+
+  .symbol-ring {
+    width: 140px;
+    height: 140px;
+    border: 1.5px solid var(--border);
+    border-radius: 50%;
+    position: relative;
+    margin-bottom: 36px;
+    animation: spin-slow 30s linear infinite;
+  }
+  .symbol-ring::before {
+    content: '';
+    position: absolute;
+    inset: 12px;
+    border: 1px solid rgba(201,168,76,0.3);
+    border-radius: 50%;
+  }
+  .symbol-ring::after {
+    content: '☽';
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 52px;
+    animation: spin-slow 30s linear infinite reverse;
+    color: var(--gold);
+    text-shadow: 0 0 30px rgba(201,168,76,0.7);
+  }
+
+  .dot-ring {
+    position: absolute;
+    inset: -18px;
+    border-radius: 50%;
+  }
+  .dot {
+    position: absolute;
+    width: 5px;
+    height: 5px;
+    background: var(--gold);
+    border-radius: 50%;
+    box-shadow: 0 0 6px var(--gold);
+  }
+
+  @keyframes spin-slow { to { transform: rotate(360deg); } }
+
+  .intro-eyebrow {
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: var(--gold);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    opacity: 0.8;
+  }
+
+  .intro-title {
+    font-family: 'Ma Shan Zheng', serif;
+    font-size: clamp(38px, 9vw, 52px);
+    color: var(--gold2);
+    text-shadow: 0 0 40px rgba(240,208,128,0.4), 0 0 80px rgba(201,168,76,0.2);
+    line-height: 1.15;
+    margin-bottom: 8px;
+  }
+
+  .intro-sub {
+    font-size: 13px;
+    letter-spacing: 6px;
+    color: var(--text-dim);
+    margin-bottom: 32px;
+  }
+
+  .intro-divider {
+    width: 120px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    margin: 0 auto 32px;
+  }
+
+  .intro-desc {
+    font-size: 13.5px;
+    line-height: 2;
+    color: var(--text-dim);
+    max-width: 340px;
+    margin-bottom: 48px;
+  }
+
+  .intro-ornaments {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--gold);
+    font-size: 18px;
+    margin-bottom: 10px;
+    opacity: 0.5;
+  }
+
+  /* ── Buttons ── */
+  .btn-start {
+    background: linear-gradient(135deg, rgba(201,168,76,0.15), rgba(155,110,243,0.12));
+    border: 1px solid var(--gold);
+    color: var(--gold2);
+    font-family: 'Noto Serif SC', serif;
+    font-size: 15px;
+    letter-spacing: 3px;
+    padding: 16px 52px;
+    border-radius: 2px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.4s;
+    text-shadow: 0 0 20px rgba(240,208,128,0.5);
+  }
+  .btn-start::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(201,168,76,0.25), rgba(155,110,243,0.2));
+    opacity: 0;
+    transition: opacity 0.4s;
+  }
+  .btn-start:hover::before { opacity: 1; }
+  .btn-start:hover {
+    box-shadow: 0 0 30px rgba(201,168,76,0.3), 0 0 60px rgba(201,168,76,0.1);
+    transform: translateY(-1px);
+  }
+  .btn-start:active { transform: translateY(0); }
+
+  /* ══ QUIZ ══ */
+  #screen-quiz { padding-top: 40px; }
+
+  .quiz-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+
+  .quiz-counter {
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+  }
+
+  .quiz-counter span {
+    color: var(--gold);
+    font-size: 18px;
+    font-weight: 600;
+  }
+
+  .progress-track {
+    flex: 1;
+    height: 2px;
+    background: rgba(255,255,255,0.08);
+    margin: 0 16px;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--purple), var(--gold));
+    border-radius: 2px;
+    transition: width 0.5s cubic-bezier(0.4,0,0.2,1);
+    box-shadow: 0 0 8px var(--gold);
+  }
+
+  .question-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 32px 28px 28px;
+    position: relative;
+    overflow: hidden;
+    animation: card-in 0.5s cubic-bezier(0.4,0,0.2,1);
+  }
+  .question-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  }
+
+  @keyframes card-in {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .question-num {
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--purple2);
+    margin-bottom: 14px;
+    opacity: 0.7;
+  }
+
+  .question-text {
+    font-size: 16px;
+    line-height: 1.85;
+    color: var(--text);
+    margin-bottom: 28px;
+    font-weight: 400;
+  }
+
+  .options-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .option-btn {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: var(--text);
+    font-family: 'Noto Serif SC', serif;
+    font-size: 13.5px;
+    line-height: 1.7;
+    padding: 14px 18px;
+    border-radius: 2px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.25s;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    position: relative;
+    overflow: hidden;
+  }
+  .option-btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(201,168,76,0.1), rgba(155,110,243,0.08));
+    opacity: 0;
+    transition: opacity 0.25s;
+  }
+  .option-btn:hover {
+    border-color: rgba(201,168,76,0.4);
+    transform: translateX(4px);
+    box-shadow: -2px 0 0 var(--gold), 0 4px 20px rgba(0,0,0,0.3);
+  }
+  .option-btn:hover::after { opacity: 1; }
+  .option-btn.selected {
+    border-color: var(--gold);
+    background: rgba(201,168,76,0.1);
+    box-shadow: -3px 0 0 var(--gold), 0 0 20px rgba(201,168,76,0.15);
+  }
+  .option-btn.selected::after { opacity: 1; }
+
+  .option-label {
+    width: 22px;
+    height: 22px;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    flex-shrink: 0;
+    color: var(--gold);
+    margin-top: 1px;
+    transition: all 0.25s;
+  }
+  .option-btn:hover .option-label,
+  .option-btn.selected .option-label {
+    background: var(--gold);
+    color: var(--bg);
+    border-color: var(--gold);
+  }
+
+  .nav-row {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 20px;
+  }
+
+  .btn-next {
+    background: transparent;
+    border: 1px solid rgba(201,168,76,0.3);
+    color: var(--gold);
+    font-family: 'Noto Serif SC', serif;
+    font-size: 13px;
+    letter-spacing: 2px;
+    padding: 10px 28px;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.3s;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .btn-next.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .btn-next:hover {
+    background: rgba(201,168,76,0.1);
+    border-color: var(--gold);
+    box-shadow: 0 0 20px rgba(201,168,76,0.2);
+  }
+
+  /* ══ LOADING ══ */
+  #screen-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    text-align: center;
+    gap: 24px;
+  }
+
+  .loading-ring {
+    width: 80px;
+    height: 80px;
+    border: 2px solid rgba(201,168,76,0.1);
+    border-top-color: var(--gold);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-text {
+    font-size: 13px;
+    letter-spacing: 4px;
+    color: var(--text-dim);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:0.4} 50%{opacity:1} }
+
+  /* ══ RESULT ══ */
+  #screen-result {
+    padding-top: 50px;
+    animation: fade-in 0.8s ease;
+  }
+  @keyframes fade-in { from{opacity:0} to{opacity:1} }
+
+  .result-header {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+
+  .result-eyebrow {
+    font-size: 10px;
+    letter-spacing: 5px;
+    color: var(--gold);
+    opacity: 0.7;
+    margin-bottom: 16px;
+  }
+
+  .result-fate-name {
+    font-family: 'Ma Shan Zheng', serif;
+    font-size: clamp(30px, 8vw, 44px);
+    color: var(--gold2);
+    text-shadow: 0 0 40px rgba(240,208,128,0.5), 0 0 80px rgba(201,168,76,0.25);
+    margin-bottom: 8px;
+    line-height: 1.2;
+  }
+
+  .result-type-tag {
+    display: inline-block;
+    background: rgba(155,110,243,0.15);
+    border: 1px solid rgba(155,110,243,0.4);
+    color: var(--purple2);
+    font-size: 11px;
+    letter-spacing: 2px;
+    padding: 5px 16px;
+    border-radius: 20px;
+    margin-bottom: 24px;
+  }
+
+  .glow-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    margin: 24px 0;
+    box-shadow: 0 0 8px rgba(201,168,76,0.4);
+  }
+
+  .result-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 28px;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .result-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  }
+
+  .result-card-title {
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--gold);
+    opacity: 0.7;
+    margin-bottom: 14px;
+  }
+
+  .result-desc {
+    font-size: 14px;
+    line-height: 2;
+    color: var(--text);
+  }
+
+  .secondary-fate {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+
+  .secondary-tag {
+    background: rgba(201,168,76,0.08);
+    border: 1px solid rgba(201,168,76,0.2);
+    color: var(--gold);
+    font-size: 12px;
+    letter-spacing: 1px;
+    padding: 5px 14px;
+    border-radius: 2px;
+  }
+
+  .chart-container {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    max-width: 360px;
+    margin: 0 auto;
+    padding: 10px;
+  }
+
+  .oracle-box {
+    background: linear-gradient(135deg, rgba(155,110,243,0.08), rgba(201,168,76,0.05));
+    border: 1px solid rgba(155,110,243,0.25);
+    border-radius: 4px;
+    padding: 24px 28px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .oracle-box::before {
+    content: '✦';
+    position: absolute;
+    top: 12px; left: 20px;
+    color: var(--purple);
+    opacity: 0.4;
+    font-size: 14px;
+  }
+  .oracle-box::after {
+    content: '✦';
+    position: absolute;
+    bottom: 12px; right: 20px;
+    color: var(--gold);
+    opacity: 0.4;
+    font-size: 14px;
+  }
+
+  .oracle-text {
+    font-family: 'Ma Shan Zheng', serif;
+    font-size: 16px;
+    line-height: 2;
+    color: var(--purple2);
+    text-shadow: 0 0 20px rgba(196,160,255,0.3);
+  }
+
+  .btn-restart {
+    display: block;
+    width: 100%;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-family: 'Noto Serif SC', serif;
+    font-size: 13px;
+    letter-spacing: 2px;
+    padding: 14px;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-top: 30px;
+    text-align: center;
+  }
+  .btn-restart:hover {
+    border-color: var(--gold);
+    color: var(--gold);
+    box-shadow: 0 0 20px rgba(201,168,76,0.1);
+  }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+  #screen-intro.active { display: flex; }
+  #screen-loading.active { display: flex; }
+
+  .stars-shimmer {
+    animation: shimmer 3s ease-in-out infinite;
+  }
+  @keyframes shimmer {
+    0%,100%{opacity:0.6} 50%{opacity:1}
+  }
+</style>
+</head>
+<body>
+
+<canvas id="stars-canvas"></canvas>
+<div class="nebula nebula-1"></div>
+<div class="nebula nebula-2"></div>
+<div class="nebula nebula-3"></div>
+
+<div id="app">
+
+  <!-- ── INTRO ── -->
+  <div id="screen-intro" class="screen active">
+    <div class="symbol-ring">
+      <div class="dot-ring" id="dot-ring"></div>
+    </div>
+    <div class="intro-eyebrow">紫微命理 · 玄学占卜</div>
+    <div class="intro-title">情劫命格<br>天命测算</div>
+    <div class="intro-sub">· FATE OF LOVE ·</div>
+    <div class="intro-divider"></div>
+    <div class="intro-desc">
+      你与情爱之间，究竟有怎样的命定羁绊？<br>
+      是执念深种，还是宿命纠缠？<br>
+      是破而后立，还是过度付出？<br><br>
+      答完 28 道题，星盘将为你揭示<br>今生注定的情劫命格。
+    </div>
+    <div class="intro-ornaments">✦ &nbsp; ✧ &nbsp; ★ &nbsp; ✧ &nbsp; ✦</div>
+    <br>
+    <button class="btn-start" onclick="startQuiz()">开启星盘测算</button>
+  </div>
+
+  <!-- ── QUIZ ── -->
+  <div id="screen-quiz" class="screen">
+    <div class="quiz-header">
+      <div class="quiz-counter"><span id="q-current">1</span> / 28</div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+      </div>
+      <div style="font-size:11px;letter-spacing:1px;color:var(--text-dim)">命格</div>
+    </div>
+    <div class="question-card" id="question-card">
+      <div class="question-num" id="question-num">QUESTION 01</div>
+      <div class="question-text" id="question-text"></div>
+      <div class="options-grid" id="options-grid"></div>
+    </div>
+    <div class="nav-row">
+      <button class="btn-next" id="btn-next" onclick="nextQuestion()">继续 →</button>
+    </div>
+  </div>
+
+  <!-- ── LOADING ── -->
+  <div id="screen-loading" class="screen">
+    <div class="loading-ring"></div>
+    <div class="loading-text">星盘运算中 · · ·</div>
+  </div>
+
+  <!-- ── RESULT ── -->
+  <div id="screen-result" class="screen">
+    <div class="result-header">
+      <div class="result-eyebrow">⋆ 你的情劫命格 ⋆</div>
+      <div class="result-fate-name" id="result-name">—</div>
+      <div class="result-type-tag" id="result-tag">—</div>
+    </div>
+
+    <div class="result-card">
+      <div class="result-card-title">▸ 命格解析</div>
+      <div class="result-desc" id="result-desc">—</div>
+    </div>
+
+    <div class="result-card" id="secondary-card" style="display:none">
+      <div class="result-card-title">▸ 次要命格</div>
+      <div class="secondary-fate" id="secondary-fates"></div>
+    </div>
+
+    <div class="result-card">
+      <div class="result-card-title">▸ 命格星盘分布</div>
+      <div class="chart-container">
+        <canvas id="fate-chart"></canvas>
+      </div>
+    </div>
+
+    <div class="oracle-box">
+      <div class="oracle-text" id="oracle-text">—</div>
+    </div>
+
+    <button class="btn-restart" onclick="restart()">✦ &nbsp; 重新测算 &nbsp; ✦</button>
+  </div>
+
+</div>
+
+<script>
+// ══════════════════════════════════════════
+//  STAR BACKGROUND
+// ══════════════════════════════════════════
+(function() {
+  const canvas = document.getElementById('stars-canvas');
+  const ctx = canvas.getContext('2d');
+  let stars = [];
+
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    initStars();
+  }
+
+  function initStars() {
+    stars = [];
+    const n = Math.floor((canvas.width * canvas.height) / 3500);
+    for (let i = 0; i < n; i++) {
+      stars.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        r: Math.random() * 1.3 + 0.2,
+        o: Math.random() * 0.7 + 0.15,
+        speed: Math.random() * 0.5 + 0.1,
+        phase: Math.random() * Math.PI * 2,
+      });
+    }
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const t = Date.now() / 1000;
+    stars.forEach(s => {
+      const alpha = s.o * (0.6 + 0.4 * Math.sin(t * s.speed + s.phase));
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255,245,210,${alpha})`;
+      ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+
+  window.addEventListener('resize', resize);
+  resize();
+  draw();
+
+  // Dot ring for intro
+  const dotRing = document.getElementById('dot-ring');
+  if (dotRing) {
+    for (let i = 0; i < 12; i++) {
+      const dot = document.createElement('div');
+      dot.className = 'dot';
+      const angle = (i / 12) * Math.PI * 2;
+      const r = 70;
+      dot.style.left = (88 + r * Math.cos(angle)) + 'px';
+      dot.style.top  = (88 + r * Math.sin(angle)) + 'px';
+      dot.style.opacity = i % 3 === 0 ? '1' : '0.35';
+      dotRing.appendChild(dot);
+    }
+  }
+})();
+
+// ══════════════════════════════════════════
+//  DATA
+// ══════════════════════════════════════════
+const FATES = {
+  HL: { name: '红鸾情劫型', short: '情根深种，为情所困', color: 'rgba(224,92,122,0.8)' },
+  TL: { name: '贪狼情劫型', short: '欲望漩涡，人际纠葛', color: 'rgba(155,110,243,0.8)' },
+  PJ: { name: '破军情劫型', short: '动荡剧烈，破而后立', color: 'rgba(99,179,237,0.8)' },
+  TT: { name: '天同情劫型', short: '过度付出，滋养他人', color: 'rgba(72,187,120,0.8)' },
+  TY: { name: '太阴情劫型', short: '情绪共情，抑郁内耗', color: 'rgba(196,160,255,0.8)' },
+  WQ: { name: '武曲化忌型', short: '现实压力型感情',     color: 'rgba(237,175,90,0.8)' },
+};
+
+const FATE_DESC = {
+  HL: `你的命盘中，红鸾星陷入重重煞星夹击，情根早在前世便已深种。你天生将爱情视为信仰，一旦动情便全力以赴，毫无退路。爱时如飞蛾扑火，燃烧全身也在所不惜；失去时如同剜心，久久无法释怀。\n\n这一生的情劫核心是「执念」—— 你极难真正放下一段感情，总在记忆里反复翻检，寻找那枚你以为遗落的珍宝。你需要学会的功课是：爱自己，先于爱他人。`,
+  TL: `贪狼星是最强烈的桃花星，你天生具备令人着迷的气场，人际关系错综复杂。然而当贪狼遇煞，情感便化为名利场，诱惑与嫉妒如影随形。你可能同时吸引多段感情，或深陷于竞争关系之中。\n\n这一生的情劫核心是「欲望」—— 你既渴望拥有，又难以专注。感情中容易因为第三方或现实诱惑而产生动荡。你需要学会的功课是：真正的富足来自内心，而非占有。`,
+  PJ: `破军主破旧立新，你的感情人生从不平静，总是经历重大变故与彻底重启。你不怕分离，甚至习惯了离别；每一段感情结束，都像是一次轰轰烈烈的涅槃。\n\n这一生的情劫核心是「剧变」—— 你的爱情从来不是细水长流，而是山洪暴发。你可能多次经历分分合合，甚至跨越地域、文化的巨大改变。你需要学会的功课是：在动荡中建立真正稳固的内心根基。`,
+  TT: `天同为福星，代表慈悲与滋养，但过于旺盛的天同命格会让你在感情中无限给予，直至透支自我。你总是照顾对方的感受，却忘记问自己是否快乐。\n\n这一生的情劫核心是「溺爱」—— 你的付出有时会被人视为理所当然，甚至换来对方的依赖与纵容。你心软，难以拒绝，总在别人最需要的时候出现。你需要学会的功课是：爱有边界，付出需要被珍惜，而非被消耗。`,
+  TY: `太阴主情绪与内在世界，你有极强的共情能力，能感受到他人情绪的每一丝波动。但这种敏感是双刃剑 —— 你在爱情中极易被对方的情绪所吞噬，产生内耗与抑郁。\n\n这一生的情劫核心是「精神消耗」—— 你总在替别人感受痛苦，忘记自己的边界在哪里。独处对你而言既是疗愈，也是折磨。你需要学会的功课是：情绪不是枷锁，敏感是天赋而非弱点。`,
+  WQ: `武曲化忌代表现实与理想的激烈碰撞，你的感情常因金钱、事业、价值观等现实因素而产生裂痕。你是务实的人，却渴望浪漫；你重视安全感，却常在现实压力下失去温柔。\n\n这一生的情劫核心是「现实与情感的撕裂」—— 你常感觉爱情和面包难以兼得，在感情中容易因为「不够实际」或「太过实际」而产生矛盾。你需要学会的功课是：真实的爱情可以同时拥有浪漫与现实。`,
+};
+
+const FATE_ORACLE = {
+  HL: '情深处，是你今生无法逃避的天命。\n执念之火，终将烧出一条通往自由的路。',
+  TL: '桃花开遍三千界，唯有那朵是为你而盛。\n学会取舍，方知何为真正的风华。',
+  PJ: '破而后立，碎而后聚。\n每一次终结，都是命运为你准备的新起点。',
+  TT: '你的温柔是宇宙给这个世界的礼物。\n先爱自己，再以爱润泽他人。',
+  TY: '你感受世界的方式，比任何人都深刻。\n敏感是你的星图，而非你的枷锁。',
+  WQ: '理想与现实，并非水火不容。\n当内心稳固，万象自然归位。',
+};
+
+// ══════════════════════════════════════════
+//  QUESTIONS  (28 题)
+// ══════════════════════════════════════════
+// 每题 options: [{text, scores:{HL/TL/PJ/TT/TY/WQ: n}}]
+const RAW_QUESTIONS = [
+  {
+    q: '当你喜欢一个人，你第一个念头通常是什么？',
+    opts: [
+      { t: '我愿意为他/她改变一切', s: {HL:3} },
+      { t: '我要先想好怎么接近他/她', s: {TL:3} },
+      { t: '顺其自然，感情是流动的', s: {PJ:3} },
+      { t: '先看看我们的现实条件匹配吗', s: {WQ:3} },
+    ]
+  },
+  {
+    q: '当一段感情出现裂痕，你最先做的事是？',
+    opts: [
+      { t: '反复回想是哪里出了问题', s: {HL:3,TY:1} },
+      { t: '寻找新的刺激转移注意力', s: {TL:3} },
+      { t: '直接提出分手，断干净', s: {PJ:3} },
+      { t: '和对方谈清楚各自的需求', s: {WQ:2,TT:1} },
+    ]
+  },
+  {
+    q: '你最难接受恋人的哪种行为？',
+    opts: [
+      { t: '对我若即若离，忽冷忽热', s: {HL:3} },
+      { t: '与别人走得很近，让我不安', s: {TL:3} },
+      { t: '阻止我做自己想做的事', s: {PJ:3} },
+      { t: '不顾现实、完全活在感觉里', s: {WQ:3} },
+    ]
+  },
+  {
+    q: '朋友说你在感情里是什么样的人？',
+    opts: [
+      { t: '痴情的那种，爱起来没有退路', s: {HL:3} },
+      { t: '魅力十足，桃花总是很旺', s: {TL:3} },
+      { t: '独立随性，感情来去自如', s: {PJ:3} },
+      { t: '贴心体贴，总是照顾对方', s: {TT:3} },
+    ]
+  },
+  {
+    q: '深夜无法入睡时，你脑海里最常出现的是？',
+    opts: [
+      { t: '某个已经离开的人的脸', s: {HL:3} },
+      { t: '某件还没做成功的事', s: {WQ:2,TL:1} },
+      { t: '过去某段激荡的经历', s: {PJ:2,TY:1} },
+      { t: '担心自己是否让人失望', s: {TT:2,TY:2} },
+    ]
+  },
+  {
+    q: '你觉得爱情最本质的意义是？',
+    opts: [
+      { t: '灵魂与灵魂之间的共鸣', s: {HL:2,TY:2} },
+      { t: '吸引力与彼此征服的游戏', s: {TL:3} },
+      { t: '两段人生相互激发与成长', s: {PJ:3} },
+      { t: '相互扶持、共建稳定的生活', s: {WQ:2,TT:2} },
+    ]
+  },
+  {
+    q: '你在感情里更容易成为哪一个角色？',
+    opts: [
+      { t: '深爱着对方，却总怕失去', s: {HL:3} },
+      { t: '被很多人喜欢，难以做出选择', s: {TL:3} },
+      { t: '主动推动变化的那一方', s: {PJ:3} },
+      { t: '默默付出、支撑关系的人', s: {TT:3} },
+    ]
+  },
+  {
+    q: '当你情绪低落，你通常会怎么处理？',
+    opts: [
+      { t: '一个人沉默消化，不愿麻烦别人', s: {TY:3} },
+      { t: '找人倾诉，甚至有些依赖对方', s: {HL:2,TT:1} },
+      { t: '做点刺激的事换换心情', s: {TL:2,PJ:1} },
+      { t: '分析问题，找出实际解决方案', s: {WQ:3} },
+    ]
+  },
+  {
+    q: '如果你爱的人需要大量时间和精力，你会？',
+    opts: [
+      { t: '全力以赴，哪怕牺牲自己的计划', s: {TT:3,HL:1} },
+      { t: '愿意付出，但会注意平衡自我', s: {TY:2,WQ:1} },
+      { t: '感觉有些窒息，需要自己的空间', s: {PJ:3} },
+      { t: '先衡量一下现实的可行性', s: {WQ:3} },
+    ]
+  },
+  {
+    q: '你对于"分手"的态度是？',
+    opts: [
+      { t: '很难真正走出来，总在回忆里打转', s: {HL:3} },
+      { t: '快速转移注意力，投入下一段关系', s: {TL:3} },
+      { t: '彻底翻篇，不留遗憾地出发', s: {PJ:3} },
+      { t: '会先冷静分析，该不该挽回', s: {WQ:2,TT:1} },
+    ]
+  },
+  {
+    q: '你认为自己最大的感情问题是什么？',
+    opts: [
+      { t: '太执着，很难放下', s: {HL:3} },
+      { t: '容易吃醋或多疑', s: {TL:2,TY:2} },
+      { t: '感情容易大起大落', s: {PJ:3} },
+      { t: '不会照顾自己的需求', s: {TT:3} },
+    ]
+  },
+  {
+    q: '你理想中的爱情节奏是？',
+    opts: [
+      { t: '深情绵长，如同命中注定', s: {HL:3} },
+      { t: '充满新鲜感和激情', s: {TL:3} },
+      { t: '时而相聚时而自由，保持空间', s: {PJ:3} },
+      { t: '踏实稳定、共同规划未来', s: {WQ:3} },
+    ]
+  },
+  {
+    q: '当伴侣做了让你受伤的事，你的第一反应是？',
+    opts: [
+      { t: '默默承受，不想引发争吵', s: {TT:2,TY:2} },
+      { t: '非常生气，需要立刻谈清楚', s: {HL:1,PJ:2} },
+      { t: '在心里记下来，慢慢疏远', s: {TY:3} },
+      { t: '评估这件事对关系的实际影响', s: {WQ:3} },
+    ]
+  },
+  {
+    q: '你愿意为爱情放弃什么？',
+    opts: [
+      { t: '几乎任何事，爱情是最重要的', s: {HL:3} },
+      { t: '部分自由，但保留我的社交圈', s: {TL:2,TT:1} },
+      { t: '短期的稳定，换来更好的未来', s: {PJ:3} },
+      { t: '感情是一部分，不会牺牲核心目标', s: {WQ:3} },
+    ]
+  },
+  {
+    q: '你是否曾经为了留住一段关系而委屈自己？',
+    opts: [
+      { t: '经常，我总觉得只要再多努力就可以', s: {HL:3,TT:1} },
+      { t: '偶尔，但不会太久', s: {TY:2,TT:1} },
+      { t: '几乎不会，我更相信顺其自然', s: {PJ:3} },
+      { t: '不会，我会用沟通来解决', s: {WQ:3} },
+    ]
+  },
+  {
+    q: '你如何看待感情中的嫉妒？',
+    opts: [
+      { t: '嫉妒是爱的证明，爱越深越会吃醋', s: {HL:2,TL:2} },
+      { t: '嫉妒是不安全感的投影，我会努力控制', s: {TY:3} },
+      { t: '嫉妒只会破坏感情，我会选择相信', s: {PJ:2,TT:1} },
+      { t: '嫉妒意味着权益受损，需要正式讨论', s: {WQ:3} },
+    ]
+  },
+  {
+    q: '你最害怕在感情里遇到哪种情境？',
+    opts: [
+      { t: '对方突然变冷，却不解释原因', s: {HL:3,TY:1} },
+      { t: '感情变成日复一日的枯燥', s: {TL:3,PJ:1} },
+      { t: '被要求改变自己的核心价值观', s: {PJ:2,WQ:1} },
+      { t: '付出很多却换来漠然或背叛', s: {TT:3,TY:1} },
+    ]
+  },
+  {
+    q: '在一段新关系开始时，你通常是？',
+    opts: [
+      { t: '很快投入，迅速确认是否是"那个人"', s: {HL:3} },
+      { t: '享受暧昧阶段，不急着定性', s: {TL:3} },
+      { t: '评估这个人能否带来改变或成长', s: {PJ:2,WQ:1} },
+      { t: '慢慢熟悉，观察对方是否值得托付', s: {WQ:2,TT:1} },
+    ]
+  },
+  {
+    q: '你的独处时间通常是什么状态？',
+    opts: [
+      { t: '满脑子都是那个人，难以专注自己的事', s: {HL:3} },
+      { t: '享受社交，独处会让我感到无聊', s: {TL:3} },
+      { t: '自由探索，独处是充电的方式', s: {PJ:2,TY:1} },
+      { t: '沉浸在自己的情绪世界里', s: {TY:3} },
+    ]
+  },
+  {
+    q: '别人评价你的感情经历，最可能说？',
+    opts: [
+      { t: '你感情太用力了，要学会放手', s: {HL:3} },
+      { t: '你太受欢迎，反而没有定性', s: {TL:3} },
+      { t: '你变化太快了，伴侣跟不上你', s: {PJ:3} },
+      { t: '你总是在付出，却没人在照顾你', s: {TT:3} },
+    ]
+  },
+  {
+    q: '你觉得感情中最重要的是？',
+    opts: [
+      { t: '精神契合，心灵上的完全理解', s: {TY:2,HL:2} },
+      { t: '激情与吸引力，感情要保持热度', s: {TL:3} },
+      { t: '尊重彼此的独立性与成长空间', s: {PJ:3} },
+      { t: '经济稳定与长期规划的一致', s: {WQ:3} },
+    ]
+  },
+  {
+    q: '当你感到被伴侣忽视，你会怎么做？',
+    opts: [
+      { t: '内心不安，开始怀疑对方是否还爱我', s: {HL:3} },
+      { t: '找其他人的陪伴来填补空缺', s: {TL:3} },
+      { t: '提出来，或者直接拉开距离', s: {PJ:3} },
+      { t: '默默消化，把情绪压在心底', s: {TY:3} },
+    ]
+  },
+  {
+    q: '你认为爱情和面包的关系是？',
+    opts: [
+      { t: '爱情是一切，面包是次要的', s: {HL:3} },
+      { t: '面包不重要，感情好才是真的好', s: {TT:2,TY:1} },
+      { t: '两者都要，感情需要有物质基础', s: {WQ:3} },
+      { t: '先有面包，感情才能稳定发展', s: {WQ:2,PJ:1} },
+    ]
+  },
+  {
+    q: '你在感情中通常扮演哪个角色？',
+    opts: [
+      { t: '那个更爱的人，总是先妥协', s: {HL:3,TT:1} },
+      { t: '被追求的那方，享受被爱', s: {TL:3} },
+      { t: '推动关系走向的决策者', s: {PJ:3} },
+      { t: '感情的稳定器，负责务实的规划', s: {WQ:3} },
+    ]
+  },
+  {
+    q: '你最能接受哪种结束方式？',
+    opts: [
+      { t: '无法接受，感情不应该结束', s: {HL:3} },
+      { t: '好聚好散，保持朋友关系', s: {TL:2,TT:1} },
+      { t: '干脆利落，不拖泥带水', s: {PJ:3} },
+      { t: '先理清楚责任和现实问题', s: {WQ:3} },
+    ]
+  },
+  {
+    q: '你是否有过明知不该在一起却依然坚持的经历？',
+    opts: [
+      { t: '有，爱上了就停不下来，停不下来', s: {HL:3} },
+      { t: '有，那段感情刺激而危险', s: {TL:2,PJ:1} },
+      { t: '有，但很快就清醒过来重新出发', s: {PJ:2,WQ:1} },
+      { t: '没有，我会理性对待感情', s: {WQ:3} },
+    ]
+  },
+  {
+    q: '在感情中你最怕听到哪句话？',
+    opts: [
+      { t: '"我需要一些空间"', s: {HL:3,TY:1} },
+      { t: '"我们最近太无聊了"', s: {TL:3} },
+      { t: '"你太不稳定了"', s: {PJ:3} },
+      { t: '"我们的未来规划不一样"', s: {WQ:3} },
+    ]
+  },
+  {
+    q: '你对"命中注定"这个说法持什么态度？',
+    opts: [
+      { t: '深信不疑，我一直在等那个命定之人', s: {HL:3} },
+      { t: '相信缘分，但也靠自己去争取', s: {TL:2,TT:1} },
+      { t: '命运是用来打破的，我自己做主', s: {PJ:3} },
+      { t: '缘分是结果，关键还是现实的经营', s: {WQ:3} },
+    ]
+  },
+];
+
+// Shuffle array
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// ══════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════
+let questions = [];
+let current = 0;
+let selected = null;
+let scores = { HL:0, TL:0, PJ:0, TT:0, TY:0, WQ:0 };
+let chartInstance = null;
+
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function startQuiz() {
+  questions = shuffle(RAW_QUESTIONS).map(q => ({
+    ...q,
+    opts: shuffle(q.opts)
+  }));
+  scores = { HL:0, TL:0, PJ:0, TT:0, TY:0, WQ:0 };
+  current = 0;
+  selected = null;
+  show('screen-quiz');
+  renderQuestion();
+}
+
+function renderQuestion() {
+  const q = questions[current];
+  document.getElementById('q-current').textContent = current + 1;
+  document.getElementById('question-num').textContent = 'QUESTION ' + String(current+1).padStart(2,'0');
+  document.getElementById('question-text').textContent = q.q;
+
+  const grid = document.getElementById('options-grid');
+  grid.innerHTML = '';
+  const labels = ['甲','乙','丙','丁'];
+  q.opts.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.innerHTML = `<span class="option-label">${labels[i]}</span><span>${opt.t}</span>`;
+    btn.onclick = () => selectOption(i, btn);
+    grid.appendChild(btn);
+  });
+
+  const fill = document.getElementById('progress-fill');
+  fill.style.width = (current / questions.length * 100) + '%';
+
+  const nextBtn = document.getElementById('btn-next');
+  nextBtn.classList.remove('visible');
+  selected = null;
+
+  // Animate card
+  const card = document.getElementById('question-card');
+  card.style.animation = 'none';
+  void card.offsetWidth;
+  card.style.animation = 'card-in 0.5s cubic-bezier(0.4,0,0.2,1)';
+}
+
+function selectOption(idx, btn) {
+  document.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  selected = idx;
+  document.getElementById('btn-next').classList.add('visible');
+}
+
+function nextQuestion() {
+  if (selected === null) return;
+  const q = questions[current];
+  const opt = q.opts[selected];
+  Object.entries(opt.s).forEach(([k,v]) => { scores[k] = (scores[k]||0) + v; });
+
+  current++;
+  if (current >= questions.length) {
+    showLoading();
+  } else {
+    renderQuestion();
+  }
+}
+
+function showLoading() {
+  show('screen-loading');
+  setTimeout(showResult, 2200);
+}
+
+function showResult() {
+  show('screen-result');
+
+  const sorted = Object.entries(scores).sort((a,b) => b[1]-a[1]);
+  const [topKey, topScore] = sorted[0];
+  const fate = FATES[topKey];
+
+  document.getElementById('result-name').textContent = fate.name;
+  document.getElementById('result-tag').textContent = fate.short;
+  document.getElementById('result-desc').textContent = FATE_DESC[topKey];
+  document.getElementById('oracle-text').textContent = FATE_ORACLE[topKey];
+
+  // Secondary fates
+  const secondaryCard = document.getElementById('secondary-card');
+  const secondaryFates = document.getElementById('secondary-fates');
+  secondaryFates.innerHTML = '';
+  const threshold = topScore * 0.75;
+  const secondaries = sorted.slice(1).filter(([,v]) => v >= threshold);
+  if (secondaries.length > 0) {
+    secondaryCard.style.display = 'block';
+    secondaries.forEach(([k]) => {
+      const tag = document.createElement('div');
+      tag.className = 'secondary-tag';
+      tag.textContent = FATES[k].name;
+      secondaryFates.appendChild(tag);
+    });
+  } else {
+    secondaryCard.style.display = 'none';
+  }
+
+  renderChart(sorted, topKey);
+}
+
+function renderChart(sorted, topKey) {
+  if (chartInstance) { chartInstance.destroy(); }
+
+  const labels = Object.keys(FATES).map(k => FATES[k].name.replace('情劫型','').replace('化忌型','').replace('囚星型',''));
+  const data   = Object.keys(FATES).map(k => scores[k] || 0);
+  const colors = Object.keys(FATES).map(k => FATES[k].color);
+  const borderColors = colors.map(c => c.replace('0.8)','1)'));
+
+  const ctx = document.getElementById('fate-chart').getContext('2d');
+  chartInstance = new Chart(ctx, {
+    type: 'radar',
+    data: {
+      labels,
+      datasets: [{
+        label: '命格能量',
+        data,
+        backgroundColor: 'rgba(201,168,76,0.08)',
+        borderColor: 'rgba(201,168,76,0.7)',
+        pointBackgroundColor: borderColors,
+        pointBorderColor: borderColors,
+        pointRadius: 5,
+        pointHoverRadius: 7,
+        borderWidth: 1.5,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: 'rgba(15,15,26,0.95)',
+          borderColor: 'rgba(201,168,76,0.3)',
+          borderWidth: 1,
+          titleColor: '#c9a84c',
+          bodyColor: '#e8dfc8',
+          callbacks: {
+            label: ctx => `  ${ctx.raw} 分`
+          }
+        }
+      },
+      scales: {
+        r: {
+          min: 0,
+          grid: { color: 'rgba(255,255,255,0.07)' },
+          angleLines: { color: 'rgba(201,168,76,0.12)' },
+          ticks: {
+            display: false,
+            stepSize: 2,
+          },
+          pointLabels: {
+            color: 'rgba(232,223,200,0.7)',
+            font: { size: 10, family: 'Noto Serif SC' },
+          }
+        }
+      }
+    }
+  });
+}
+
+function restart() {
+  show('screen-intro');
+}
+</script>
+</body>
+</html>
